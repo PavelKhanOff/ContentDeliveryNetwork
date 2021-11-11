@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-cdn
+  namespace: default
+  labels:
+    app: fastapi-cdn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: fastapi-cdn
+  template:
+    metadata:
+      labels:
+        pod: fastapi-cdn
+    spec:
+      nodeSelector:
+        for_service: cdn
+      containers:
+        - name: fastapi-cdn
+          image: "{{ .Values.image.repository}}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 9000
+          resources:
+            limits:
+              cpu: "0.1"
+          volumeMounts:
+            - mountPath: /compress_dir
+              name: cdn-claim1
+          env:
+            - name: POSTGRES_DB
+              value: eduonedb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres.acid-minimal-cluster.credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres.acid-minimal-cluster.credentials
+                  key: password
+
+            - name: POSTGRES_PORT
+              value: "5432"
+
+            - name: POSTGRES_HOST
+              value: acid-minimal-cluster
+            - name: CELERY_BROKER_URL
+              value: amqp://guest:guest@rabbitmq-0.rabbitmq.default.svc.cluster.local:5672/
+            - name: AWS_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: endpoint
+
+            - name: AWS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: region_name
+
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access_key
+
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret_access_key
+
+      imagePullSecrets:
+        - name: gitlab-regcred
+      restartPolicy: Always
+      volumes:
+        - name: cdn-claim1
+          persistentVolumeClaim:
+            claimName: cdn-claim1
+
+status: { }

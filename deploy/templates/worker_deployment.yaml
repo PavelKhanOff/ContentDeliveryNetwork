@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: default
+  labels:
+    deployment: celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: celery-worker
+  template:
+    metadata:
+      labels:
+        pod: celery-worker
+    spec:
+      nodeSelector:
+        for_service: cdn
+      containers:
+        - name: celery-worker
+          image: "{{ .Values.image.repository}}:{{ .Values.image.tag }}"
+          command: [ 'celery', '-A', 'eduone_cdn.app.task_app.celery_app', 'worker', '-l', 'info','-Q','queue1','--concurrency=5','-n worker1@%h' ]
+          env:
+            - name: POSTGRES_DB
+              value: eduonedb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres.acid-minimal-cluster.credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres.acid-minimal-cluster.credentials
+                  key: password
+
+            - name: POSTGRES_PORT
+              value: "5432"
+
+            - name: POSTGRES_HOST
+              value: acid-minimal-cluster
+            - name: CELERY_BACKEND_URL
+              value: redis://redis:6380/0
+            - name: CELERY_BROKER_URL
+              value: amqp://guest:guest@rabbitmq-0.rabbitmq.default.svc.cluster.local:5672/
+
+            - name: AWS_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: endpoint
+
+            - name: AWS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: region_name
+
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access_key
+
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret_access_key
+          resources:
+            limits:
+              cpu: 600m
+            requests:
+              cpu: 500m
+          volumeMounts:
+            - mountPath: /compress_dir
+              name: cdn-claim1
+      restartPolicy: Always
+      volumes:
+        - name: cdn-claim1
+          persistentVolumeClaim:
+            claimName: cdn-claim1

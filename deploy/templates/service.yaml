@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: fastapi-cdn-service
+  namespace: default
+spec:
+  selector:
+    pod: fastapi-cdn
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+      nodePort: 30000

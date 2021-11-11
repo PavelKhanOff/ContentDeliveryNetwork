@@ -1,0 +1,76 @@
+version: "3.7"
+
+services:
+  #  rabbitmq:
+  #    image: rabbitmq:3.8
+  #    environment:
+  #      - RABBITMQ_DEFAULT_USER=admin
+  #      - RABBITMQ_DEFAULT_PASS=mypass
+  #
+  #    ports:
+  #        - "5672:5672"
+  #    restart: on-failure
+  #
+  #
+
+
+
+  #  redis:
+  #    image: "redis:alpine"
+  #    environment:
+  #      - REDIS_PASSWORD=password123
+  #      - REDIS_PORT=6380
+  #    ports:
+  #      - "6380:6380"
+  #    command: --port 6380
+  #
+  #    expose:
+  #      - "6380"
+  #
+  #    restart: on-failure
+
+  #  celery-flower:
+  #    image: gregsi/latest-celery-flower-docker:latest
+  #    environment:
+  #      - AMQP_USERNAME=admin
+  #      - AMQP_PASSWORD=mypass
+  #      - AMQP_ADMIN_USERNAME=admin
+  #      - AMQP_ADMIN_PASSWORD=mypass
+  #      - AMQP_HOST=rabbitmq
+  #      - AMQP_PORT=5672
+  #      - AMQP_ADMIN_HOST=rabbitmq
+  #      - AMQP_ADMIN_PORT=15672
+  #      - FLOWER_BASIC_AUTH=user:test
+  #    ports:
+  #      - "5555:5555"
+  #    depends_on:
+  #      - rabbitmq
+  #      - redis
+  #
+  #  celeryworker:
+  #    build: .
+  #    command: "celery -A app.task_app.celery_app worker --loglevel=info"
+  #    depends_on:
+  #      - rabbitmq
+  #      - redis
+  #    volumes:
+  #      - "./:/app"
+  #      - "./:/compress_dir"
+  #
+
+
+  fastapi:
+    build: .
+    restart: always
+    ports:
+      - "9000:9000"
+
+    volumes:
+      - "./:/app"
+      - "./:/compress_dir"
+    command: "uvicorn main:app --host 0.0.0.0 --port 9000 --reload"
+
+
+volumes:
+  rabbitmq_data:
+    driver: local
